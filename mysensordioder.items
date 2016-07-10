@@ -1,0 +1,8 @@
+
+Number MySensorID6DimmerState "Bedroom Color Dimmer State" (MySensors) {mqtt="<[mosquitto:mysensors/SI/6/0/V_DIMMER:state:default]"}
+Number MySensorID6LightState "Bedroom Color Switch State" (MySensors) {mqtt="<[mosquitto:mysensors/SI/6/0/V_LIGHT:state:default]"}
+String MySensorID6RGBState "Bedroom Color State" (MySensors) {mqtt="<[mosquitto:mysensors/SI/6/1/V_RGB:state:default]"}
+Number MySensorID6DimmerCommand "Bedroom Color Dimmer Command" (MySensors) {mqtt=">[mosquitto:mysensors/SO/6/0/V_DIMMER:command:*:default]"}
+Number MySensorID6LightCommand "Bedroom Color Switch Command" (MySensors) {mqtt=">[mosquitto:mysensors/SO/6/0/V_LIGHT:command:OFF:0],>[mosquitto:mysensors/SO/6/0/V_LIGHT:command:ON:1]"}
+String MySensorID6RGBCommand "Bedroom Color Command" (MySensors) {mqtt=">[mosquitto:mysensors/SO/6/1/V_RGB:command:*:default]"}
+Color Color_Bedroom_Dioder "Bedroom Ikea Dioder" <hue> (Lights,Bedroom)
