@@ -1,0 +1,138 @@
+import org.openhab.core.library.types.*
+
+import org.openhab.core.persistence.*
+import org.openhab.model.script.actions.*
+import java.lang.*
+import java.util.concurrent.locks.ReentrantLock
+
+var java.util.concurrent.locks.ReentrantLock lockDioder = new java.util.concurrent.locks.ReentrantLock()
+
+
+rule "MySensorID6RGBState updated"
+when 
+	Item MySensorID6RGBState received update
+then
+lockDioder.lock()
+try {
+	logInfo("rules","MySensorID6RGBState received an update.")
+	
+	var int r = Integer::parseInt(MySensorID6RGB.state.toString.substring(0,2),16)
+	var int g = Integer::parseInt(MySensorID6RGB.state.toString.substring(2,4),16)
+	var int b = Integer::parseInt(MySensorID6RGB.state.toString.substring(4,6),16)
+	var double hue 
+
+	//convert to hue	
+	if(r==0 && g==0 && b==0)
+		hue = 0
+	else
+	{
+
+		var double r_d = r
+		var double g_d = g
+		var double b_d = b
+
+		r_d = r_d / 255
+		g_d = g_d / 255
+		b_d = b_d / 255
+
+		var double min
+		var double max
+		var int channel
+		
+
+		if(r_d >= g_d)
+		{
+			min = g_d
+			max = r_d
+			channel = 0
+		}
+		else
+		{
+			min = r_d
+			max = g_d
+			channel = 1
+		}
+
+		if(b_d > max)
+		{
+			max = b_d
+			channel = 2
+		}
+
+		if(b_d < min)
+			min = b_d
+
+		if(channel == 0)
+			hue = 60*((g_d-b_d)/(max-min))
+		if(channel == 1)
+			hue = 60*(2 + ((b_d-r_d)/(max-min)))
+		if(channel == 2)
+			hue = 60*(4 + ((r_d-g_d)/(max-min)))
+
+		if (hue < 0)
+			hue = hue + 360
+	}
+		
+	
+	logInfo("rules","RGB received has been converted to hue. Send the hue to the Bedroom Dioder strip.")
+	
+	var HSBType scene = new HSBType(hue+",100,"+MySensorID6Dimmer.state.toString)
+	postUpdate(Color_Bedroom_Dioder, scene)
+
+} finally  
+{
+	// release the lock - we are ready to process the next event
+	lockDioder.unlock()
+}
+end
+
+rule "MySensorID6DimmerState updated"
+when 
+	Item MySensorID6DimmerState received update
+then
+lockDioder.lock()
+try 
+{
+	logInfo("rules","MySensorID6DimmerState received an update.")
+	var PercentType bright = new PercentType(MySensorID6Dimmer.state)	
+			
+	logInfo("rules","Send the brightness value to the Bedroom Dioder strip.")
+	postUpdate(Color_Bedroom_Dioder, bright)
+	
+} finally  
+{
+	// release the lock - we are ready to process the next event
+	lockDioder.unlock()
+}
+end
+
+rule "Color Bedroom Dioder update"
+when
+	Item Color_Bedroom_Dioder received command
+then
+	logInfo("rules","Color Bedroom Dioder received a command.")
+	
+	var HSBType currentState = Color_Bedroom_Dioder.state
+	
+	var DecimalType hue = currentState.getHue()
+	var PercentType red = currentState.getRed()
+	var PercentType green = currentState.getGreen()
+	var PercentType blue = currentState.getBlue()
+	var PercentType sat = currentState.getSaturation()
+	var PercentType bright = currentState.getBrightness()
+	
+	var int redI = (red.intValue * 255) / 100
+	var int greenI = (green.intValue * 255) / 100
+	var int blueI = (blue.intValue * 255) / 100	
+	
+	var String redS = if (redI < 16) "0"+Integer::toHexString(redI) else Integer::toHexString(redI)
+	var String greenS = if (greenI < 16) "0"+Integer::toHexString(greenI) else Integer::toHexString(greenI)
+	var String blueS = if (blueI < 16) "0"+Integer::toHexString(blueI) else Integer::toHexString(blueI)
+	
+	logInfo("rules","Send RGB in hex to MySensorID6RGB.")
+	sendCommand(MySensorID6RGBCommand,redS + greenS + blueS)
+	
+	logInfo("rules","Send Dimmer value to MySensorID6Dimmer.")
+	sendCommand(MySensorID6DimmerCommand,bright.toString)
+
+end
