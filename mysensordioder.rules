@@ -20,6 +20,8 @@ try {
 	var int g = Integer::parseInt(MySensorID6RGBState.state.toString.substring(2,4),16)
 	var int b = Integer::parseInt(MySensorID6RGBState.state.toString.substring(4,6),16)
 	var double hue 
+	var double bright
+	var double saturation
 
 	if(r!=0 || g!=0 || b!=0)
 	{
@@ -34,8 +36,7 @@ try {
 
 		var double min
 		var double max
-		var int channel
-		
+		var int channel		
 
 		if(r_d >= g_d)
 		{
@@ -68,33 +69,28 @@ try {
 
 		if (hue < 0)
 			hue = hue + 360
+			
+		bright = (max+min)/2
+		
+		if(min==max)
+			saturation = 0
+		else
+		{
+			if(saturation < 0.5)
+				saturation = (max-min)/(max+min)
+			else
+				saturation = (max-min)/(2-max-min)
+		}
+		
+		bright = (bright*100).intValue
+		saturation = (saturation*100).intValue
 
 		logInfo("rules","no zero RGB received converted to hue. Send the hue to the Bedroom Dioder strip.")
 	
-		var HSBType scene = new HSBType(hue+",100,"+MySensorID6DimmerState.state.toString)
+		var HSBType scene = new HSBType(hue+","+saturation+","+bright)
 		postUpdate(Color_Bedroom_Dioder, scene)
 	}	
 
-} finally  
-{
-	// release the lock - we are ready to process the next event
-	lockDioder.unlock()
-}
-end
-
-rule "MySensorID6DimmerState updated"
-when 
-	Item MySensorID6DimmerState received update
-then
-lockDioder.lock()
-try 
-{
-	logInfo("rules","MySensorID6DimmerState received an update.")
-	var PercentType bright = new PercentType(MySensorID6DimmerState.state.toString)	
-			
-	logInfo("rules","Send the brightness value to the Bedroom Dioder strip.")
-	postUpdate(Color_Bedroom_Dioder, bright)
-	
 } finally  
 {
 	// release the lock - we are ready to process the next event
